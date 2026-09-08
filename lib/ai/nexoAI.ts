@@ -1,54 +1,109 @@
-export async function getAIResponse(prompt: string): Promise<string> {
+export async function getAIResponse(
+  prompt: string
+): Promise<string> {
   try {
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-    
-    if (!GEMINI_API_KEY) {
-      console.error('GEMINI_API_KEY not found')
-      return fallbackResponse(prompt)
+    const apiKey = process.env.GEMINI_API_KEY?.trim()
+
+    if (!apiKey) {
+      console.error(
+        '❌ GEMINI_API_KEY is missing'
+      )
+
+      return 'NEXO غير متاح حاليًا بسبب إعدادات الخادم. حاول مرة أخرى لاحقًا.'
     }
 
-    const cleanKey = GEMINI_API_KEY.trim()
-    
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${cleanKey}`,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+
           generationConfig: {
             temperature: 0.7,
             maxOutputTokens: 800,
-            topP: 0.95
-          }
-        })
+            topP: 0.95,
+          },
+        }),
       }
     )
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Gemini API Error:', response.status, errorText)
-      return fallbackResponse(prompt)
+      const errorText =
+        await response.text()
+
+      console.error(
+        '❌ Gemini API Error:',
+        response.status,
+        errorText
+      )
+
+      return getFallbackResponse(
+        response.status
+      )
     }
 
     const data = await response.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-    
-    return text || fallbackResponse(prompt)
+
+    const text =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text
+
+    if (
+      typeof text !== 'string' ||
+      text.trim().length === 0
+    ) {
+      console.error(
+        '❌ Gemini returned no text:',
+        JSON.stringify(data)
+      )
+
+      return 'NEXO استقبل سؤالك، لكن حصلت مشكلة في تكوين الرد 😅 جرّب تاني.'
+    }
+
+    return text.trim()
   } catch (error) {
-    console.error('AI Error:', error)
-    return fallbackResponse(prompt)
+    console.error(
+      '💥 NEXO AI Error:',
+      error
+    )
+
+    return 'حصلت مشكلة في الاتصال بالذكاء الاصطناعي 😅 جرّب تاني بعد لحظة.'
   }
 }
 
-function fallbackResponse(prompt: string): string {
-  const responses = [
-    "والله أنا هنا عشان أساعدك 😊 بس حصلت مشكلة تقنية بسيطة. جرب تاني بعد شوية!",
-    "يا عم أنا NEXO، مساعدك الذكي 👋 بس أظن النت واجعني شوية. كرر سؤالك وانا هرد عليك!",
-    "شكلك عندك سؤال مهم 📚 بس أنا محتاج شوية وقت عشان أفكر. قولي تاني بسرعة!",
-    "يا سيدي أنا معاك 💪 بس الـ AI واجعني شوية. جرب تاني وهرد عليك فوراً!"
-  ]
-  return responses[Math.floor(Math.random() * responses.length)]
+function getFallbackResponse(
+  status: number
+): string {
+  if (status === 400) {
+    return 'حصل خطأ في طلب NEXO 😅 جرّب صياغة السؤال بطريقة تانية.'
+  }
+
+  if (status === 401 || status === 403) {
+    return 'NEXO مش قادر يتصل بخدمة الذكاء الاصطناعي حاليًا. راجع إعدادات API.'
+  }
+
+  if (status === 429) {
+    return 'NEXO عليه ضغط شوية دلوقتي 😅 استنى لحظة وجرب تاني.'
+  }
+
+  if (status >= 500) {
+    return 'خدمة الذكاء الاصطناعي مش متاحة مؤقتًا. جرّب تاني بعد شوية.'
+  }
+
+  return 'حصلت مشكلة تقنية بسيطة في NEXO 😅 جرّب تاني.'
 }
