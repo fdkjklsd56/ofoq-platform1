@@ -38,7 +38,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error('كلمة المرور غير صحيحة')
         }
 
-        // ✅ إرجاع كل البيانات المطلوبة
         return {
           id: user.id,
           email: user.email,
@@ -53,7 +52,6 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // ✅ عند أول تسجيل دخول، خذ كل البيانات من user
       if (user) {
         token.id = user.id
         token.role = user.role
@@ -66,7 +64,6 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }) {
-      // ✅ أضف كل البيانات من token إلى session
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
