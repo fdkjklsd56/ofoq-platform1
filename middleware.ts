@@ -16,8 +16,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/splash', request.url))
   }
 
-  // لو مسجل وبيحاول يخش على صفحة عامة → يروح للداشبورد بتاعه
-  if (token && isPublicRoute) {
+  // لو مسجل وبيحاول يخش على صفحة عامة (عدا الصفحة الرئيسية)
+  if (token && isPublicRoute && pathname !== '/') {
     const role = token.role as string
     const dashboardPath = role === 'ADMIN' ? '/admin' : 
                           role === 'TEACHER' ? '/teacher' : '/student'
