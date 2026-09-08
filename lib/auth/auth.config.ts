@@ -38,11 +38,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error('كلمة المرور غير صحيحة')
         }
 
-        // ✅ شيل التحقق من الإيميل
-        // if (!user.emailVerified) {
-        //   throw new Error('يرجى التحقق من بريدك الإلكتروني أولاً')
-        // }
-
+        // ✅ إرجاع كل البيانات المطلوبة
         return {
           id: user.id,
           email: user.email,
@@ -57,20 +53,28 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // ✅ عند أول تسجيل دخول، خذ كل البيانات من user
       if (user) {
+        token.id = user.id
         token.role = user.role
         token.studentId = user.studentId
         token.teacherId = user.teacherId
         token.adminId = user.adminId
+        token.email = user.email
+        token.name = user.name
       }
       return token
     },
     async session({ session, token }) {
+      // ✅ أضف كل البيانات من token إلى session
       if (session.user) {
+        session.user.id = token.id as string
         session.user.role = token.role as string
         session.user.studentId = token.studentId as string
         session.user.teacherId = token.teacherId as string
         session.user.adminId = token.adminId as string
+        session.user.email = token.email as string
+        session.user.name = token.name as string
       }
       return session
     },
