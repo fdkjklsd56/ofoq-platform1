@@ -4,12 +4,8 @@ import { authOptions } from '@/lib/auth/auth.config'
 import { prisma } from '@/lib/db/prisma'
 import { getAIResponse } from '@/lib/ai/nexoAI'
 
-// السياق الخاص بالطالب
 const getStudentContext = async (userId: string) => {
-  if (!userId) {
-    console.log('❌ No userId provided')
-    return null
-  }
+  if (!userId) return null
 
   try {
     const user = await prisma.user.findUnique({
@@ -28,10 +24,7 @@ const getStudentContext = async (userId: string) => {
       }
     })
 
-    if (!user?.student) {
-      console.log('❌ No student found for user:', userId)
-      return null
-    }
+    if (!user?.student) return null
 
     const progress = user.student.progress || []
     const totalLessons = progress.length
@@ -57,7 +50,6 @@ const getStudentContext = async (userId: string) => {
   }
 }
 
-// توليد الـ Prompt
 const generateNEXOPrompt = (context: any, userMessage: string, history: any[] = []) => {
   const historyText = history.length > 0 
     ? `\n\nسجل المحادثة السابق:\n${history.map((m: any) => `${m.role === 'USER' ? 'الطالب' : 'NEXO'}: ${m.content}`).join('\n')}`
@@ -70,9 +62,7 @@ const generateNEXOPrompt = (context: any, userMessage: string, history: any[] = 
 
 رسالة الطالب: ${userMessage}${historyText}`
 
-  if (!context) {
-    return basePrompt
-  }
+  if (!context) return basePrompt
 
   return `أنت NEXO، مساعد ذكي على منصة أفق التعليمية.
 
@@ -98,21 +88,10 @@ ${historyText}
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🚀 NEXO API called')
-    
     const session = await getServerSession(authOptions)
-    console.log('📋 Session:', session?.user?.email, 'ID:', session?.user?.id)
     
-    if (!session?.user) {
-      console.log('❌ No session')
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'غير مصرح به' }, { status: 401 })
-    }
-
-    // ✅ تأكد من وجود user id
-    const userId = session.user.id
-    if (!userId) {
-      console.log('❌ No user ID in session')
-      return NextResponse.json({ error: 'معرف المستخدم غير موجود' }, { status: 400 })
     }
 
     const { message, conversationId } = await request.json()
@@ -120,13 +99,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'الرسالة مطلوبة' }, { status: 400 })
     }
 
-    console.log('📝 User message:', message.substring(0, 50))
+    const userId = session.user.id
 
     // جلب السياق
     const context = await getStudentContext(userId)
-    console.log('📊 Context:', context ? 'Found' : 'Not found')
 
-    // جلب المحادثة السابقة
+    // جلب المحادثة السابقة أو إنشاء جديدة
     let conversation
     if (conversationId) {
       conversation = await prisma.nexoConversation.findUnique({
@@ -143,7 +121,6 @@ export async function POST(request: NextRequest) {
           context: context || {}
         }
       })
-      console.log('💬 New conversation created:', conversation.id)
     }
 
     // حفظ رسالة المستخدم
