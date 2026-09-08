@@ -38,9 +38,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error('كلمة المرور غير صحيحة')
         }
 
-        if (!user.emailVerified) {
-          throw new Error('يرجى التحقق من بريدك الإلكتروني أولاً')
-        }
+        // ✅ شيل التحقق من الإيميل
+        // if (!user.emailVerified) {
+        //   throw new Error('يرجى التحقق من بريدك الإلكتروني أولاً')
+        // }
 
         return {
           id: user.id,

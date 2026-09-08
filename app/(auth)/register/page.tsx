@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowRight, Phone, Mail, User, Lock, ChevronDown } from 'lucide-react'
@@ -20,14 +20,13 @@ export default function RegisterPage() {
     grade: '',
   })
 
-  // المراحل التعليمية
   const stages = [
     { value: 'primary', label: 'المرحلة الابتدائية' },
     { value: 'middle', label: 'المرحلة الإعدادية' },
     { value: 'secondary', label: 'المرحلة الثانوية' },
+    { value: 'university', label: 'الجامعة' },
   ]
 
-  // الصفوف حسب المرحلة
   const getGrades = (stage: string) => {
     switch (stage) {
       case 'primary':
@@ -50,6 +49,13 @@ export default function RegisterPage() {
           { value: '10', label: 'الصف الأول الثانوي' },
           { value: '11', label: 'الصف الثاني الثانوي' },
           { value: '12', label: 'الصف الثالث الثانوي' },
+        ]
+      case 'university':
+        return [
+          { value: '1', label: 'السنة الأولى' },
+          { value: '2', label: 'السنة الثانية' },
+          { value: '3', label: 'السنة الثالثة' },
+          { value: '4', label: 'السنة الرابعة' },
         ]
       default:
         return []
@@ -89,7 +95,8 @@ export default function RegisterPage() {
         throw new Error(result.error || 'حدث خطأ')
       }
 
-      router.push(`/verify?userId=${result.userId}`)
+      // ✅ روح مباشرة للـ login
+      router.push('/login')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'حدث خطأ أثناء التسجيل')
     } finally {
