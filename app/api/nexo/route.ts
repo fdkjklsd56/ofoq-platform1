@@ -6,41 +6,46 @@ import { getAIResponse } from '@/lib/ai/nexoAI'
 
 // السياق الخاص بالطالب
 const getStudentContext = async (userId: string) => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      student: {
-        include: {
-          progress: {
-            include: {
-              lesson: true,
-              course: true
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        student: {
+          include: {
+            progress: {
+              include: {
+                lesson: true,
+                course: true
+              }
             }
           }
         }
       }
+    })
+
+    if (!user?.student) return null
+
+    const progress = user.student.progress || []
+    const totalLessons = progress.length
+    const completedLessons = progress.filter((p: any) => p.completed).length
+    const averageProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
+
+    return {
+      name: user.fullName,
+      stage: user.student.stage || 'غير محدد',
+      grade: user.student.grade || 'غير محدد',
+      totalLessons,
+      completedLessons,
+      averageProgress,
+      recentLessons: progress.slice(-3).map((p: any) => ({
+        title: p.lesson?.title || 'درس غير محدد',
+        completed: p.completed,
+        progress: p.progress || 0
+      }))
     }
-  })
-
-  if (!user?.student) return null
-
-  const progress = user.student.progress || []
-  const totalLessons = progress.length
-  const completedLessons = progress.filter((p: any) => p.completed).length
-  const averageProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
-
-  return {
-    name: user.fullName,
-    stage: user.student.stage || 'غير محدد',
-    grade: user.student.grade || 'غير محدد',
-    totalLessons,
-    completedLessons,
-    averageProgress,
-    recentLessons: progress.slice(-3).map((p: any) => ({
-      title: p.lesson?.title || 'درس غير محدد',
-      completed: p.completed,
-      progress: p.progress || 0
-    }))
+  } catch (error) {
+    console.error('Error getting student context:', error)
+    return null
   }
 }
 
@@ -50,14 +55,16 @@ const generateNEXOPrompt = (context: any, userMessage: string, history: any[] = 
     ? `\n\nسجل المحادثة السابق:\n${history.map((m: any) => `${m.role === 'USER' ? 'الطالب' : 'NEXO'}: ${m.content}`).join('\n')}`
     : ''
 
-  if (!context) {
-    return `أنت NEXO، مساعد ذكي على منصة أفق التعليمية. 
+  const basePrompt = `أنت NEXO، مساعد ذكي على منصة أفق التعليمية. 
 تحدث بلهجة مصرية ودية وجذابة (زي: "يا عم"، "يلا بينا"، "شكلك"، "والله").
 ساعد الطالب في فهم المواد وتوجيهه للمحتوى المناسب.
 لا تقدم حلولاً مباشرة للواجبات ولا تساعد في الغش.
 إذا سأل عن دراسته، اسأله عن المرحلة والمواد عشان تفهم وضعه.
 
 رسالة الطالب: ${userMessage}${historyText}`
+
+  if (!context) {
+    return basePrompt
   }
 
   return `أنت NEXO، مساعد ذكي على منصة أفق التعليمية.
@@ -86,18 +93,26 @@ ${historyText}
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 NEXO API called')
+    
     const session = await getServerSession(authOptions)
     if (!session?.user) {
+      console.log('❌ No session')
       return NextResponse.json({ error: 'غير مصرح به' }, { status: 401 })
     }
+
+    console.log('✅ Session user:', session.user.email)
 
     const { message, conversationId } = await request.json()
     if (!message) {
       return NextResponse.json({ error: 'الرسالة مطلوبة' }, { status: 400 })
     }
 
+    console.log('📝 User message:', message.substring(0, 50))
+
     // جلب السياق
     const context = await getStudentContext(session.user.id)
+    console.log('📊 Context:', context ? 'Found' : 'Not found')
 
     // جلب المحادثة السابقة
     let conversation
@@ -116,6 +131,7 @@ export async function POST(request: NextRequest) {
           context: context || {}
         }
       })
+      console.log('💬 New conversation created:', conversation.id)
     }
 
     // حفظ رسالة المستخدم
@@ -131,9 +147,12 @@ export async function POST(request: NextRequest) {
     // توليد الـ Prompt
     const history = conversation.messages || []
     const prompt = generateNEXOPrompt(context, message, history)
+    console.log('🤖 Prompt generated, length:', prompt.length)
 
     // استدعاء الـ AI الحقيقي
+    console.log('🔮 Calling AI...')
     let aiResponse = await getAIResponse(prompt)
+    console.log('✅ AI response received, length:', aiResponse?.length || 0)
 
     // التأكد من وجود رد
     if (!aiResponse || aiResponse.trim().length < 3) {
@@ -156,9 +175,9 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('NEXO Error:', error)
+    console.error('💥 NEXO Error:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في NEXO' },
+      { error: 'حدث خطأ في NEXO: ' + (error instanceof Error ? error.message : 'unknown') },
       { status: 500 }
     )
   }
