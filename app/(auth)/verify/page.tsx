@@ -1,39 +1,52 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Check, X, Loader2 } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 
-export default function VerifyPage() {
+function VerifyContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const userId = searchParams.get('userId')
-  
+
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [timer, setTimer] = useState(60)
 
-  // عد تنازلي لإعادة إرسال الكود
   useEffect(() => {
     if (timer > 0) {
-      const interval = setInterval(() => setTimer(t => t - 1), 1000)
+      const interval = setInterval(() => {
+        setTimer((t) => t - 1)
+      }, 1000)
+
       return () => clearInterval(interval)
     }
   }, [timer])
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!userId) {
+      setError('رابط التحقق غير صالح')
+      return
+    }
+
     setLoading(true)
     setError('')
 
     try {
       const res = await fetch('/api/auth/verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, code }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          code,
+        }),
       })
 
       const result = await res.json()
@@ -43,28 +56,54 @@ export default function VerifyPage() {
       }
 
       setSuccess(true)
-      setTimeout(() => router.push('/login'), 2000)
+
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ')
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'حدث خطأ أثناء التحقق'
+      )
     } finally {
       setLoading(false)
     }
   }
 
   const resendCode = async () => {
+    if (!userId) {
+      setError('رابط التحقق غير صالح')
+      return
+    }
+
     try {
       const res = await fetch('/api/auth/resend-verification', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+        }),
       })
 
-      if (res.ok) {
-        setTimer(60)
-        setError('')
+      const result = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        throw new Error(
+          result?.error || 'حدث خطأ في إعادة إرسال الرمز'
+        )
       }
+
+      setTimer(60)
+      setError('')
     } catch (err) {
-      setError('حدث خطأ في إعادة الإرسال')
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'حدث خطأ في إعادة الإرسال'
+      )
     }
   }
 
@@ -79,8 +118,14 @@ export default function VerifyPage() {
           <div className="w-20 h-20 mx-auto bg-green-500/20 rounded-full flex items-center justify-center mb-6">
             <Check className="w-10 h-10 text-green-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">تم التحقق بنجاح!</h2>
-          <p className="text-white/40">جاري التوجيه إلى تسجيل الدخول...</p>
+
+          <h2 className="text-2xl font-bold text-white mb-2">
+            تم التحقق بنجاح!
+          </h2>
+
+          <p className="text-white/40">
+            جاري التوجيه إلى تسجيل الدخول...
+          </p>
         </motion.div>
       </div>
     )
@@ -97,6 +142,7 @@ export default function VerifyPage() {
         <h1 className="text-3xl font-bold text-white text-center mb-2">
           تحقق من بريدك
         </h1>
+
         <p className="text-white/30 text-center mb-8">
           أدخل رمز التحقق المرسل إلى بريدك الإلكتروني
         </p>
@@ -112,6 +158,7 @@ export default function VerifyPage() {
             <label className="text-white/40 text-sm block mb-2">
               رمز التحقق
             </label>
+
             <input
               type="text"
               value={code}
@@ -120,6 +167,8 @@ export default function VerifyPage() {
               className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-center text-2xl tracking-[0.5em] placeholder:text-white/20 focus:outline-none focus:border-white/20 transition-colors"
               required
               maxLength={6}
+              inputMode="numeric"
+              autoComplete="one-time-code"
               dir="ltr"
             />
           </div>
@@ -150,12 +199,15 @@ export default function VerifyPage() {
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
-            {timer > 0 ? `إعادة الإرسال بعد ${timer} ثانية` : 'إعادة إرسال الرمز'}
+            {timer > 0
+              ? `إعادة الإرسال بعد ${timer} ثانية`
+              : 'إعادة إرسال الرمز'}
           </button>
         </div>
 
         <p className="text-white/20 text-center mt-6 text-sm">
           لم يصلك الرمز؟{' '}
+
           <button
             onClick={() => router.push('/register')}
             className="text-white/40 hover:text-white/60 transition-colors"
@@ -165,5 +217,26 @@ export default function VerifyPage() {
         </p>
       </motion.div>
     </div>
+  )
+}
+
+function VerifyFallback() {
+  return (
+    <div className="min-h-screen bg-dark flex items-center justify-center p-8">
+      <div className="text-center">
+        <Loader2 className="w-8 h-8 text-white/40 animate-spin mx-auto mb-4" />
+        <p className="text-white/30">
+          جاري تحميل صفحة التحقق...
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<VerifyFallback />}>
+      <VerifyContent />
+    </Suspense>
   )
 }
