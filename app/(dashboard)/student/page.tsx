@@ -7,7 +7,7 @@ import {
   BookOpen, GraduationCap, Bot, 
   Home, Library, Video, ClipboardList, 
   BarChart3, MessageCircle, LogOut,
-  Sparkles, Menu, X, ChevronLeft
+  Sparkles, Menu, X, ChevronLeft, Calendar, Clock
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -21,9 +21,11 @@ export default function StudentDashboard() {
     subjects: 0,
     lessons: 0,
     progress: 0,
-    exams: 0
+    exams: 0,
+    upcomingExams: [],
+    recentActivities: []
   })
-  const [courses, setCourses] = useState<any[]>([])
+  const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -33,10 +35,9 @@ export default function StudentDashboard() {
   }, [status, router])
 
   useEffect(() => {
-    // جلب البيانات الحقيقية من قاعدة البيانات
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/student/stats')
+        const res = await fetch('/api/student/dashboard')
         if (res.ok) {
           const data = await res.json()
           setStats(data.stats)
@@ -49,9 +50,7 @@ export default function StudentDashboard() {
       }
     }
 
-    if (session) {
-      fetchData()
-    }
+    if (session) fetchData()
   }, [session])
 
   if (status === 'loading' || loading) {
@@ -97,7 +96,7 @@ export default function StudentDashboard() {
       {/* الشريط الجانبي */}
       <aside className={`fixed top-0 right-0 h-full bg-dark/95 backdrop-blur-xl border-l border-white/5 flex flex-col py-6 z-50 transition-all duration-300 ${
         sidebarOpen ? 'w-64' : 'w-20'
-      } ${window.innerWidth < 1024 && !sidebarOpen ? '-translate-x-full' : ''}`}>
+      } ${typeof window !== 'undefined' && window.innerWidth < 1024 && !sidebarOpen ? '-translate-x-full' : ''}`}>
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center text-2xl font-bold text-white/80 mb-8 mx-auto">
           أ
         </div>
@@ -134,7 +133,7 @@ export default function StudentDashboard() {
       </aside>
 
       {/* المحتوى الرئيسي */}
-      <main className={`lg:pr-24 p-4 md:p-8 max-w-7xl mx-auto transition-all duration-300 ${window.innerWidth < 1024 ? 'pt-20' : ''}`}>
+      <main className={`lg:pr-24 p-4 md:p-8 max-w-7xl mx-auto transition-all duration-300 ${typeof window !== 'undefined' && window.innerWidth < 1024 ? 'pt-20' : ''}`}>
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -182,88 +181,142 @@ export default function StudentDashboard() {
           ))}
         </motion.div>
 
-        {/* كورساتي */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl md:text-2xl font-bold text-white">كورساتي</h2>
-            <Link href="/student/courses">
-              <button className="text-white/30 hover:text-white/60 text-sm transition-colors">
-                عرض الكل
-              </button>
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {courses.length > 0 ? (
-              courses.map((course, i) => (
-                <Link key={i} href={`/student/courses/${course.id}`}>
-                  <div className="glass-white rounded-2xl p-4 md:p-6 hover:bg-white/5 transition-all duration-300 cursor-pointer group">
-                    <h3 className="text-white font-semibold text-base md:text-lg group-hover:text-white/90 transition-colors">
-                      {course.title}
-                    </h3>
-                    <p className="text-white/30 text-sm mt-1">{course.teacher}</p>
-                    <div className="mt-4">
-                      <div className="flex justify-between text-white/30 text-xs mb-1">
-                        <span>التقدم</span>
-                        <span>{course.progress}%</span>
-                      </div>
-                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-white/40 to-white/20 rounded-full transition-all duration-500"
-                          style={{ width: `${course.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="glass-white rounded-2xl p-8 text-center col-span-full">
-                <p className="text-white/40">ليس لديك كورسات مسجلة حالياً</p>
+        {/* كورساتي + اختبارات قادمة */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl md:text-2xl font-bold text-white">كورساتي</h2>
                 <Link href="/student/courses">
-                  <button className="mt-4 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all duration-300">
-                    استكشف الكورسات
+                  <button className="text-white/30 hover:text-white/60 text-sm transition-colors">
+                    عرض الكل
                   </button>
                 </Link>
               </div>
-            )}
-          </div>
-        </motion.div>
 
-        {/* NEXO Widget */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-8 glass-white rounded-2xl p-4 md:p-6 bg-gradient-to-br from-white/5 to-transparent"
-        >
-          <Link href="/student/nexo" className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-white/60" />
-            </div>
-            <div>
-              <h4 className="text-white font-semibold">NEXO</h4>
-              <p className="text-white/20 text-xs">اسألني أي شيء</p>
-            </div>
-          </Link>
-          <Link href="/student/nexo">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="اكتب سؤالك هنا..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-white/20 transition-colors cursor-pointer"
-                readOnly
-              />
-              <button className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all duration-300 text-sm">
-                إرسال
-              </button>
-            </div>
-          </Link>
-        </motion.div>
+              <div className="space-y-4">
+                {courses.length > 0 ? (
+                  courses.map((course: any, i) => (
+                    <Link key={i} href={`/student/courses/${course.id}`}>
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 + i * 0.1 }}
+                        className="glass-white rounded-2xl p-4 md:p-6 hover:bg-white/5 transition-all duration-300 cursor-pointer group"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold text-base md:text-lg group-hover:text-white/90 transition-colors">
+                              {course.title}
+                            </h3>
+                            <p className="text-white/30 text-sm mt-1">{course.teacher}</p>
+                            <p className="text-white/20 text-xs mt-1">
+                              {course.completed || 0} / {course.total || 0} درس
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-6">
+                            <div className="w-32">
+                              <div className="flex justify-between text-white/30 text-xs mb-1">
+                                <span>التقدم</span>
+                                <span>{course.progress || 0}%</span>
+                              </div>
+                              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-white/40 to-white/20 rounded-full transition-all duration-500"
+                                  style={{ width: `${course.progress || 0}%` }}
+                                />
+                              </div>
+                            </div>
+                            <button className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all duration-300 text-sm border border-white/5">
+                              متابعة
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="glass-white rounded-2xl p-8 text-center">
+                    <p className="text-white/40">ليس لديك كورسات مسجلة حالياً</p>
+                    <Link href="/student/courses">
+                      <button className="mt-4 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all duration-300">
+                        استكشف الكورسات
+                      </button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+
+          {/* الجانب الأيمن */}
+          <div className="space-y-6">
+            {/* اختبارات قادمة */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="glass-white rounded-2xl p-6"
+            >
+              <h3 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-white/40" />
+                اختبارات قادمة
+              </h3>
+              {stats.upcomingExams && stats.upcomingExams.length > 0 ? (
+                <div className="space-y-3">
+                  {stats.upcomingExams.map((exam: any, i) => (
+                    <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5">
+                      <div>
+                        <p className="text-white text-sm">{exam.title}</p>
+                        <p className="text-white/20 text-xs">{exam.date}</p>
+                      </div>
+                      <span className="text-white/40 text-xs bg-white/5 px-3 py-1 rounded-full">
+                        {exam.days} أيام
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-white/40 text-sm">لا توجد اختبارات قادمة</p>
+              )}
+            </motion.div>
+
+            {/* NEXO */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="glass-white rounded-2xl p-6 bg-gradient-to-br from-white/5 to-transparent"
+            >
+              <Link href="/student/nexo" className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center">
+                  <Bot className="w-5 h-5 text-white/60" />
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold">NEXO</h4>
+                  <p className="text-white/20 text-xs">اسألني أي شيء</p>
+                </div>
+              </Link>
+              <Link href="/student/nexo">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="اكتب سؤالك هنا..."
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-white/20 transition-colors cursor-pointer"
+                    readOnly
+                  />
+                  <button className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all duration-300 text-sm">
+                    إرسال
+                  </button>
+                </div>
+              </Link>
+            </motion.div>
+          </div>
+        </div>
       </main>
     </div>
   )
