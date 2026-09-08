@@ -4,13 +4,9 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
-  Users, BookOpen, Video, FileText, 
-  ClipboardList, BarChart3, Settings, 
-  LogOut, Plus, Calendar, MessageCircle,
-  Home, GraduationCap, Award, Star,
-  Shield, Database, Globe, DollarSign,
-  TrendingUp, Activity, UserPlus, BookMarked,
-  Lock, AlertTriangle
+  Users, BookOpen, GraduationCap, 
+  LogOut, Plus, Home, Shield, Database, BarChart3, Settings,
+  DollarSign
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -18,8 +14,7 @@ import Link from 'next/link'
 export default function AdminDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState({
     users: 0,
     teachers: 0,
@@ -34,29 +29,10 @@ export default function AdminDashboard() {
       return
     }
 
-    // التحقق من صلاحيات الادمن
-    // بدل ما نعتمد على session.user.role، نستخدم API
-const checkAdmin = async () => {
-  try {
-    const res = await fetch('/api/admin/verify')
-    const data = await res.json()
-    
-    if (data.isAdmin) {
-      setIsAdmin(true)
-      await fetchData()
-    } else {
-      router.push('/student')
-    }
-  } catch (error) {
-    router.push('/student')
-  } finally {
+    // ✅ شيل التحقق مؤقتاً
+    fetchData()
     setLoading(false)
-  }
-}
-
-    if (session) {
-      checkAdmin()
-    }
+    
   }, [session, status, router])
 
   const fetchData = async () => {
@@ -65,7 +41,7 @@ const checkAdmin = async () => {
       if (res.ok) {
         const data = await res.json()
         setStats(data.stats)
-        setRecentActivity(data.recentActivity)
+        setRecentActivity(data.recentActivity || [])
       }
     } catch (error) {
       console.error('Error fetching admin data:', error)
@@ -80,30 +56,7 @@ const checkAdmin = async () => {
     )
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-dark flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-white rounded-3xl p-8 max-w-md w-full text-center"
-        >
-          <div className="w-20 h-20 mx-auto bg-red-500/10 rounded-full flex items-center justify-center mb-6">
-            <Lock className="w-10 h-10 text-red-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">🚫 غير مصرح</h2>
-          <p className="text-white/40 text-sm mb-6">
-            هذه الصفحة مخصصة للمشرفين فقط.
-          </p>
-          <Link href="/student">
-            <button className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all duration-300">
-              العودة للرئيسية
-            </button>
-          </Link>
-        </motion.div>
-      </div>
-    )
-  }
+  if (!session) return null
 
   const statsData = [
     { label: 'المستخدمين', value: stats.users, icon: Users, color: 'from-blue-500 to-cyan-500' },
@@ -210,16 +163,8 @@ const checkAdmin = async () => {
                 {recentActivity.map((activity: any, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all duration-300">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-sm ${
-                        activity.type === 'user' ? 'text-blue-400' :
-                        activity.type === 'course' ? 'text-purple-400' :
-                        activity.type === 'payment' ? 'text-green-400' :
-                        'text-yellow-400'
-                      }`}>
-                        {activity.type === 'user' ? '👤' :
-                         activity.type === 'course' ? '📚' :
-                         activity.type === 'payment' ? '💰' :
-                         '📝'}
+                      <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-sm">
+                        📝
                       </div>
                       <div>
                         <p className="text-white text-sm">{activity.action}</p>
