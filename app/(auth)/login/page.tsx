@@ -29,7 +29,7 @@ export default function LoginPage() {
         setError(result.error)
       } else {
         // التوجيه حسب الدور
-        const role = result?.user?.role || 'STUDENT'
+        const role = 'STUDENT'
         router.push(`/${role.toLowerCase()}`)
         router.refresh()
       }

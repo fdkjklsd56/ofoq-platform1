@@ -33,7 +33,7 @@ export default function IntroScreen() {
   const router = useRouter()
 
   // الانتقال التلقائي كل 2.5 ثانية
-  useState(() => {
+  useEffect(() => {
     const timer = setInterval(() => {
       setCurrent(prev => {
         if (prev >= slides.length - 1) {
