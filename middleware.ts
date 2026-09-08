@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import type { NextRequest } next/server'
+import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request })
   const { pathname } = request.nextUrl
 
-  // الصفحات العامة (مش محتاجة تسجيل)
+  // الصفحات العامة
   const publicRoutes = ['/', '/splash', '/intro', '/start', '/login', '/register', '/verify', '/about', '/help', '/contact']
   const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route))
   const isApiRoute = pathname.startsWith('/api')
