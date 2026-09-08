@@ -6,26 +6,32 @@ import { prisma } from '@/lib/db/prisma'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // جلب البيانات الحقيقية
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true }
+    })
+
+    if (user?.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const [users, teachers, courses] = await Promise.all([
       prisma.user.count(),
       prisma.teacher.count(),
-      prisma.course.count(),
+      prisma.course.count()
     ])
 
     const stats = {
       users,
       teachers,
       courses,
-      revenue: 0 // هنضيف نظام الدفع بعدين
+      revenue: 0
     }
 
-    // جلب آخر الأنشطة
     const recentActivity = [
       // هنضيف الأنشطة الحقيقية بعدين
     ]

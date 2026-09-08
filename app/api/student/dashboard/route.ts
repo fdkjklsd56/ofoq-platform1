@@ -40,8 +40,8 @@ export async function GET() {
       lessons: completedLessons,
       progress: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
       exams: student.examAttempts.length,
-      upcomingExams: [], // هنضيف بعدين
-      recentActivities: [] // هنضيف بعدين
+      upcomingExams: [],
+      recentActivities: []
     }
 
     const courses = student.enrollments.map(enrollment => ({

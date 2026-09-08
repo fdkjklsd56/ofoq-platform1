@@ -10,7 +10,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // جلب الكتب المتاحة للطالب
     const books = await prisma.book.findMany({
       where: {
         isPublished: true,
