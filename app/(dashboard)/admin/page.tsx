@@ -35,27 +35,24 @@ export default function AdminDashboard() {
     }
 
     // التحقق من صلاحيات الادمن
-    const checkAdmin = async () => {
-      try {
-        const res = await fetch('/api/admin/verify')
-        if (res.ok) {
-          const data = await res.json()
-          if (data.isAdmin) {
-            setIsAdmin(true)
-            // جلب البيانات الحقيقية
-            await fetchData()
-          } else {
-            router.push('/student')
-          }
-        } else {
-          router.push('/student')
-        }
-      } catch (error) {
-        router.push('/student')
-      } finally {
-        setLoading(false)
-      }
+    // بدل ما نعتمد على session.user.role، نستخدم API
+const checkAdmin = async () => {
+  try {
+    const res = await fetch('/api/admin/verify')
+    const data = await res.json()
+    
+    if (data.isAdmin) {
+      setIsAdmin(true)
+      await fetchData()
+    } else {
+      router.push('/student')
     }
+  } catch (error) {
+    router.push('/student')
+  } finally {
+    setLoading(false)
+  }
+}
 
     if (session) {
       checkAdmin()

@@ -11,6 +11,7 @@ export async function GET() {
       return NextResponse.json({ isAdmin: false }, { status: 401 })
     }
 
+    // ✅ جلب الدور من قاعدة البيانات مباشرة (أضمن)
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { role: true }
@@ -18,8 +19,11 @@ export async function GET() {
 
     const isAdmin = user?.role === 'ADMIN'
 
+    console.log('Admin check:', { userId: session.user.id, role: user?.role, isAdmin })
+
     return NextResponse.json({ isAdmin })
   } catch (error) {
+    console.error('Admin verify error:', error)
     return NextResponse.json({ isAdmin: false }, { status: 500 })
   }
 }
