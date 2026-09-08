@@ -6,6 +6,11 @@ import { getAIResponse } from '@/lib/ai/nexoAI'
 
 // السياق الخاص بالطالب
 const getStudentContext = async (userId: string) => {
+  if (!userId) {
+    console.log('❌ No userId provided')
+    return null
+  }
+
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -23,7 +28,10 @@ const getStudentContext = async (userId: string) => {
       }
     })
 
-    if (!user?.student) return null
+    if (!user?.student) {
+      console.log('❌ No student found for user:', userId)
+      return null
+    }
 
     const progress = user.student.progress || []
     const totalLessons = progress.length
@@ -31,7 +39,7 @@ const getStudentContext = async (userId: string) => {
     const averageProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
 
     return {
-      name: user.fullName,
+      name: user.fullName || 'طالب',
       stage: user.student.stage || 'غير محدد',
       grade: user.student.grade || 'غير محدد',
       totalLessons,
@@ -49,7 +57,7 @@ const getStudentContext = async (userId: string) => {
   }
 }
 
-// توليد الـ Prompt المفصل لـ AI
+// توليد الـ Prompt
 const generateNEXOPrompt = (context: any, userMessage: string, history: any[] = []) => {
   const historyText = history.length > 0 
     ? `\n\nسجل المحادثة السابق:\n${history.map((m: any) => `${m.role === 'USER' ? 'الطالب' : 'NEXO'}: ${m.content}`).join('\n')}`
@@ -59,7 +67,6 @@ const generateNEXOPrompt = (context: any, userMessage: string, history: any[] = 
 تحدث بلهجة مصرية ودية وجذابة (زي: "يا عم"، "يلا بينا"، "شكلك"، "والله").
 ساعد الطالب في فهم المواد وتوجيهه للمحتوى المناسب.
 لا تقدم حلولاً مباشرة للواجبات ولا تساعد في الغش.
-إذا سأل عن دراسته، اسأله عن المرحلة والمواد عشان تفهم وضعه.
 
 رسالة الطالب: ${userMessage}${historyText}`
 
@@ -80,11 +87,9 @@ const generateNEXOPrompt = (context: any, userMessage: string, history: any[] = 
 ${context.recentLessons.length > 0 ? `آخر الدروس:\n${context.recentLessons.map((l: any) => `- ${l.title}: ${l.completed ? '✅ مكتمل' : `⏳ ${l.progress}%`}`).join('\n')}` : ''}
 
 تعليمات:
-1. تحدث بلهجة مصرية طبيعية ودية (زي: "يا عم"، "يلا بينا"، "والله"، "شكلك")
-2. استخدم أحياناً نكت أو مزاح (زي: "يا عم كفاية رغي وروح ذاكر 😂")
-3. ساعد الطالب في فهم المواد بأسلوب مبسط
-4. لا تقدم حلولاً مباشرة للغش
-5. توجه الطالب للمحتوى المناسب حسب مرحلته
+1. تحدث بلهجة مصرية طبيعية ودية
+2. ساعد الطالب في فهم المواد بأسلوب مبسط
+3. لا تقدم حلولاً مباشرة للغش
 
 ${historyText}
 
@@ -96,12 +101,19 @@ export async function POST(request: NextRequest) {
     console.log('🚀 NEXO API called')
     
     const session = await getServerSession(authOptions)
+    console.log('📋 Session:', session?.user?.email, 'ID:', session?.user?.id)
+    
     if (!session?.user) {
       console.log('❌ No session')
       return NextResponse.json({ error: 'غير مصرح به' }, { status: 401 })
     }
 
-    console.log('✅ Session user:', session.user.email)
+    // ✅ تأكد من وجود user id
+    const userId = session.user.id
+    if (!userId) {
+      console.log('❌ No user ID in session')
+      return NextResponse.json({ error: 'معرف المستخدم غير موجود' }, { status: 400 })
+    }
 
     const { message, conversationId } = await request.json()
     if (!message) {
@@ -111,7 +123,7 @@ export async function POST(request: NextRequest) {
     console.log('📝 User message:', message.substring(0, 50))
 
     // جلب السياق
-    const context = await getStudentContext(session.user.id)
+    const context = await getStudentContext(userId)
     console.log('📊 Context:', context ? 'Found' : 'Not found')
 
     // جلب المحادثة السابقة
@@ -126,7 +138,7 @@ export async function POST(request: NextRequest) {
     if (!conversation) {
       conversation = await prisma.nexoConversation.create({
         data: {
-          userId: session.user.id,
+          userId: userId,
           title: message.slice(0, 50),
           context: context || {}
         }
@@ -138,7 +150,7 @@ export async function POST(request: NextRequest) {
     await prisma.nexoMessage.create({
       data: {
         conversationId: conversation.id,
-        userId: session.user.id,
+        userId: userId,
         role: 'USER',
         content: message
       }
@@ -147,14 +159,10 @@ export async function POST(request: NextRequest) {
     // توليد الـ Prompt
     const history = conversation.messages || []
     const prompt = generateNEXOPrompt(context, message, history)
-    console.log('🤖 Prompt generated, length:', prompt.length)
 
-    // استدعاء الـ AI الحقيقي
-    console.log('🔮 Calling AI...')
+    // استدعاء الـ AI
     let aiResponse = await getAIResponse(prompt)
-    console.log('✅ AI response received, length:', aiResponse?.length || 0)
 
-    // التأكد من وجود رد
     if (!aiResponse || aiResponse.trim().length < 3) {
       aiResponse = "آسف، مش عارف أرد دلوقتي 😅 جرب تسأل بطريقة تانية وانا هساعدك!"
     }
@@ -163,7 +171,7 @@ export async function POST(request: NextRequest) {
     await prisma.nexoMessage.create({
       data: {
         conversationId: conversation.id,
-        userId: session.user.id,
+        userId: userId,
         role: 'ASSISTANT',
         content: aiResponse
       }
