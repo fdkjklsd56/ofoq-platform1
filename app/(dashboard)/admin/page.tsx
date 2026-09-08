@@ -1,34 +1,200 @@
+'use client'
+
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { 
+  Users, BookOpen, Video, FileText, 
+  ClipboardList, BarChart3, Settings, 
+  LogOut, Plus, Calendar, MessageCircle,
+  Home, GraduationCap, Award, Star,
+  Shield, Database, Globe, DollarSign,
+  TrendingUp, Activity, UserPlus, BookMarked
+} from 'lucide-react'
+import { useEffect } from 'react'
+
 export default function AdminDashboard() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+    }
+  }, [status, router])
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-dark flex items-center justify-center">
+        <div className="w-16 h-16 border-2 border-white/10 border-t-white/30 rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!session) return null
+
+  const stats = [
+    { label: 'المستخدمين', value: '1,284', icon: Users, color: 'from-blue-500 to-cyan-500' },
+    { label: 'المعلمين', value: '48', icon: GraduationCap, color: 'from-green-500 to-emerald-500' },
+    { label: 'الكورسات', value: '156', icon: BookOpen, color: 'from-purple-500 to-pink-500' },
+    { label: 'الإيرادات', value: 'EGP 12,450', icon: DollarSign, color: 'from-yellow-500 to-orange-500' },
+  ]
+
+  const recentActivity = [
+    { action: 'مستخدم جديد: أحمد محمد', time: 'منذ ساعتين', type: 'user' },
+    { action: 'كورس جديد: الرياضيات المتقدمة', time: 'منذ 4 ساعات', type: 'course' },
+    { action: 'دفع اشتراك: سارة علي', time: 'منذ يوم', type: 'payment' },
+    { action: 'تحديث المحتوى: الفيزياء', time: 'منذ يومين', type: 'content' },
+  ]
+
   return (
-    <div className="min-h-screen bg-[#08080e] p-6 max-w-md mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-lg font-bold text-[#e2e8f0]">لوحة الإدارة العامة</h1>
-        <span className="text-xs text-[#64748b] bg-[#12121c] px-3 py-1.5 rounded-xl border border-white/10">⚙️ إعدادات</span>
-      </div>
+    <div className="min-h-screen bg-dark">
+      <aside className="fixed top-0 right-0 w-20 h-full bg-white/5 backdrop-blur-xl border-l border-white/5 flex flex-col items-center py-6 z-50">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center text-2xl font-bold text-white/80 mb-8">
+          م
+        </div>
+        <nav className="flex-1 flex flex-col gap-4">
+          {[
+            { icon: Home, id: 'home', label: 'الرئيسية' },
+            { icon: Users, id: 'users', label: 'المستخدمين' },
+            { icon: BookOpen, id: 'courses', label: 'الكورسات' },
+            { icon: Shield, id: 'admin', label: 'الإدارة' },
+            { icon: Database, id: 'content', label: 'المحتوى' },
+            { icon: BarChart3, id: 'analytics', label: 'الإحصائيات' },
+            { icon: Settings, id: 'settings', label: 'الإعدادات' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 relative group ${
+                item.id === 'home'
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/20 hover:text-white/60 hover:bg-white/5'
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="absolute right-full mr-3 px-2 py-1 bg-white/10 backdrop-blur-xl rounded-lg text-xs text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </nav>
+        <button className="w-12 h-12 rounded-2xl flex items-center justify-center text-white/20 hover:text-white/60 hover:bg-white/5 transition-all duration-300">
+          <LogOut className="w-5 h-5" />
+        </button>
+      </aside>
 
-      {/* إحصائيات المنصة */}
-      <div className="bg-[#12121c] border border-white/10 p-4 rounded-2xl space-y-2">
-        <p className="text-xs text-[#64748b]">إجمالي مستخدمي المنصة</p>
-        <h3 className="text-2xl font-bold text-[#e2e8f0]">5,420 مستخدم</h3>
-        <p className="text-[10px] text-purple-400">↑ نمو بنسبة 14% هذا الشهر</p>
-      </div>
+      <main className="pr-24 p-8 max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex justify-between items-center mb-12"
+        >
+          <div>
+            <h1 className="text-4xl font-bold text-white">
+              مرحباً، {session.user?.name?.split(' ')[0] || 'مدير'} 👋
+            </h1>
+            <p className="text-white/30 mt-2 text-lg">لوحة تحكم منصة أفق</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-all duration-300 flex items-center gap-2 border border-white/10">
+              <Plus className="w-4 h-4" />
+              <span>إضافة جديدة</span>
+            </button>
+          </div>
+        </motion.div>
 
-      {/* إدارة المستخدمين سريعة */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-bold text-[#e2e8f0]">مراجعة المحتوى الجديد</h3>
-        <div className="bg-[#12121c] border border-white/10 p-4 rounded-xl space-y-3">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-xs font-bold text-[#e2e8f0]">كورس الرياضيات المتقدمة</p>
-              <p className="text-[10px] text-[#64748b]">بواسطة د. سامي</p>
-            </div>
-            <div className="flex space-x-2 space-x-reverse">
-              <button className="px-2.5 py-1 bg-red-500/10 text-red-400 text-[10px] rounded-lg">رفض</button>
-              <button className="px-2.5 py-1 bg-[#7c3aed] text-white text-[10px] rounded-lg">اعتماد</button>
-            </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+        >
+          {stats.map((stat, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 + i * 0.1 }}
+              className="glass-white rounded-2xl p-6 hover:bg-white/5 transition-all duration-300"
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
+                  <stat.icon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-white">{stat.value}</p>
+                  <p className="text-white/40 text-sm">{stat.label}</p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="glass-white rounded-2xl p-6"
+            >
+              <h3 className="text-white font-semibold text-lg mb-4">آخر الأنشطة</h3>
+              <div className="space-y-3">
+                {recentActivity.map((activity, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all duration-300">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-sm ${
+                        activity.type === 'user' ? 'text-blue-400' :
+                        activity.type === 'course' ? 'text-purple-400' :
+                        activity.type === 'payment' ? 'text-green-400' :
+                        'text-yellow-400'
+                      }`}>
+                        {activity.type === 'user' ? '👤' :
+                         activity.type === 'course' ? '📚' :
+                         activity.type === 'payment' ? '💰' :
+                         '📝'}
+                      </div>
+                      <div>
+                        <p className="text-white text-sm">{activity.action}</p>
+                        <p className="text-white/20 text-xs">{activity.time}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+
+          <div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="glass-white rounded-2xl p-6"
+            >
+              <h3 className="text-white font-semibold text-lg mb-4">إحصائيات سريعة</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 rounded-xl bg-white/5">
+                  <span className="text-white/60">إجمالي المستخدمين</span>
+                  <span className="text-white font-semibold">1,284</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-xl bg-white/5">
+                  <span className="text-white/60">المستخدمين النشطين</span>
+                  <span className="text-white font-semibold">342</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-xl bg-white/5">
+                  <span className="text-white/60">معدل النمو</span>
+                  <span className="text-green-400 font-semibold">+12%</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-xl bg-white/5">
+                  <span className="text-white/60">الاشتراكات</span>
+                  <span className="text-white font-semibold">89</span>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
-  );
+  )
 }
