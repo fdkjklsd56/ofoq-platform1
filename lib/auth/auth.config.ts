@@ -58,7 +58,6 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.fullName,
           role: user.role,
-
           studentId: user.student?.id ?? null,
           teacherId: user.teacher?.id ?? null,
           adminId: user.admin?.id ?? null,
@@ -70,14 +69,19 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.email = user.email
-        token.name = user.name
+        // NextAuth uses token.sub as the main user ID
+        token.sub = user.id
+
         token.role = user.role
 
-        token.studentId = user.studentId ?? null
-        token.teacherId = user.teacherId ?? null
-        token.adminId = user.adminId ?? null
+        token.studentId =
+          user.studentId ?? null
+
+        token.teacherId =
+          user.teacherId ?? null
+
+        token.adminId =
+          user.adminId ?? null
       }
 
       return token
@@ -85,10 +89,11 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
-        session.user.email = token.email as string
-        session.user.name = token.name as string
-        session.user.role = token.role as string
+        // Use the standard NextAuth JWT subject
+        session.user.id = token.sub as string
+
+        session.user.role =
+          token.role as string
 
         session.user.studentId =
           (token.studentId as string | null) ?? null
