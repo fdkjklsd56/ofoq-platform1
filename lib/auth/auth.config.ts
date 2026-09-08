@@ -8,20 +8,31 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60,
   },
+
   providers: [
     CredentialsProvider({
       name: 'credentials',
+
       credentials: {
-        email: { label: 'البريد الإلكتروني', type: 'email' },
-        password: { label: 'كلمة المرور', type: 'password' },
+        email: {
+          label: 'البريد الإلكتروني',
+          type: 'email',
+        },
+        password: {
+          label: 'كلمة المرور',
+          type: 'password',
+        },
       },
+
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('يرجى إدخال البريد الإلكتروني وكلمة المرور')
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: {
+            email: credentials.email,
+          },
           include: {
             student: true,
             teacher: true,
@@ -33,7 +44,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error('البريد الإلكتروني غير مسجل')
         }
 
-        const isValid = await compare(credentials.password, user.password)
+        const isValid = await compare(
+          credentials.password,
+          user.password
+        )
+
         if (!isValid) {
           throw new Error('كلمة المرور غير صحيحة')
         }
@@ -43,42 +58,56 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.fullName,
           role: user.role,
-          studentId: user.student?.id,
-          teacherId: user.teacher?.id,
-          adminId: user.admin?.id,
+
+          studentId: user.student?.id ?? null,
+          teacherId: user.teacher?.id ?? null,
+          adminId: user.admin?.id ?? null,
         }
       },
     }),
   ],
+
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = user.role
-        token.studentId = user.studentId
-        token.teacherId = user.teacherId
-        token.adminId = user.adminId
         token.email = user.email
         token.name = user.name
+        token.role = user.role
+
+        token.studentId = user.studentId ?? null
+        token.teacherId = user.teacherId ?? null
+        token.adminId = user.adminId ?? null
       }
+
       return token
     },
+
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string
-        session.user.studentId = token.studentId as string
-        session.user.teacherId = token.teacherId as string
-        session.user.adminId = token.adminId as string
         session.user.email = token.email as string
         session.user.name = token.name as string
+        session.user.role = token.role as string
+
+        session.user.studentId =
+          (token.studentId as string | null) ?? null
+
+        session.user.teacherId =
+          (token.teacherId as string | null) ?? null
+
+        session.user.adminId =
+          (token.adminId as string | null) ?? null
       }
+
       return session
     },
   },
+
   pages: {
     signIn: '/login',
     error: '/login',
   },
+
   secret: process.env.NEXTAUTH_SECRET,
 }
