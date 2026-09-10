@@ -8,6 +8,7 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ===================== Users =====================
 model User {
   id               String            @id @default(cuid())
   email            String            @unique
@@ -41,12 +42,15 @@ model Student {
 }
 
 model Teacher {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  bio        String?
-  isVerified Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String        @id @default(cuid())
+  userId         String        @unique
+  bio            String?
+  specialization String?
+  isVerified     Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses        Course[]
+  liveStreams    LiveStream[]
 }
 
 model Admin {
@@ -91,6 +95,7 @@ model StudentCode {
   createdAt DateTime @default(now())
 }
 
+// ===================== Live Streaming =====================
 model LiveStream {
   id          String    @id @default(cuid())
   teacherId   String
@@ -98,11 +103,11 @@ model LiveStream {
   title       String
   description String?
   streamKey   String    @unique
-  status      String    @default("SCHEDULED") // SCHEDULED, LIVE, ENDED
+  status      String    @default("SCHEDULED")
   scheduledAt DateTime
   startedAt   DateTime?
   endedAt     DateTime?
-  duration    Int?      // in minutes
+  duration    Int?
   viewers     Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -110,14 +115,66 @@ model LiveStream {
   @@map("live_streams")
 }
 
-model Teacher {
-  id            String    @id @default(cuid())
-  userId        String    @unique
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio           String?
-  specialization String?
-  isVerified    Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  courses       Course[]
-  liveStreams   LiveStream[]
+// ===================== Courses =====================
+model Course {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  teacherId    String?
+  teacher      Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  isFree       Boolean  @default(true)
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("courses")
+}
+
+// ===================== Messages =====================
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Conversation {
+  id            String   @id @default(cuid())
+  participants  String[]
+  lastMessage   String?
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("conversations")
+}
+
+// ===================== NEXO =====================
+model NexoConversation {
+  id        String        @id @default(cuid())
+  userId    String
+  title     String?
+  context   Json?
+  messages  NexoMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("nexo_conversations")
+}
+
+model NexoMessage {
+  id             String           @id @default(cuid())
+  conversationId String
+  conversation   NexoConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  role           String           @default("USER")
+  content        String
+  tokens         Int?
+  createdAt      DateTime         @default(now())
+
+  @@map("nexo_messages")
 }
