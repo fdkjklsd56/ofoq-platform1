@@ -90,3 +90,34 @@ model StudentCode {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+model LiveStream {
+  id          String    @id @default(cuid())
+  teacherId   String
+  teacher     Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  streamKey   String    @unique
+  status      String    @default("SCHEDULED") // SCHEDULED, LIVE, ENDED
+  scheduledAt DateTime
+  startedAt   DateTime?
+  endedAt     DateTime?
+  duration    Int?      // in minutes
+  viewers     Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("live_streams")
+}
+
+model Teacher {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio           String?
+  specialization String?
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  courses       Course[]
+  liveStreams   LiveStream[]
+}
