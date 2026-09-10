@@ -3,9 +3,10 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Search, Filter, BookOpen, Clock, User, Star, ChevronLeft } from 'lucide-react'
+import { Search, BookOpen, User, ChevronLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import MobileNav from '@/components/shared/MobileNav'
 
 export default function CoursesPage() {
   const { data: session, status } = useSession()
@@ -47,28 +48,26 @@ export default function CoursesPage() {
   }
 
   const filteredCourses = courses.filter((course: any) =>
-    course.title.toLowerCase().includes(search.toLowerCase()) ||
-    course.teacher?.toLowerCase().includes(search.toLowerCase())
+    course.title?.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
-    <div className="min-h-screen bg-dark p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
+    <div className="min-h-screen bg-dark pb-24 lg:pb-8">
+      <div className="max-w-7xl mx-auto p-4 md:p-8">
+        <div className="flex items-center gap-4 mb-6">
           <Link href="/student">
             <button className="p-2 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all duration-300">
               <ChevronLeft className="w-6 h-6" />
             </button>
           </Link>
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white">الكورسات</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-white">الكورسات</h1>
             <p className="text-white/30 text-sm">استكشف كل الكورسات المتاحة</p>
           </div>
         </div>
 
-        {/* بحث */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="flex-1 relative">
+        <div className="mb-6">
+          <div className="relative">
             <Search className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-white/20" />
             <input
               type="text"
@@ -78,14 +77,9 @@ export default function CoursesPage() {
               className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pr-12 text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 transition-colors"
             />
           </div>
-          <button className="px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all duration-300 border border-white/5 flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            <span>تصفية</span>
-          </button>
         </div>
 
-        {/* قائمة الكورسات */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCourses.length > 0 ? (
             filteredCourses.map((course: any, i) => (
               <motion.div
@@ -107,7 +101,7 @@ export default function CoursesPage() {
                     </span>
                   </div>
                   <h3 className="text-white font-semibold text-lg mb-2">{course.title}</h3>
-                  <p className="text-white/30 text-sm mb-4 line-clamp-2">{course.description}</p>
+                  <p className="text-white/30 text-sm mb-4 line-clamp-2">{course.description || ''}</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-white/30 text-sm">
                       <User className="w-4 h-4" />
@@ -124,11 +118,13 @@ export default function CoursesPage() {
             ))
           ) : (
             <div className="col-span-full text-center py-12">
-              <p className="text-white/40">لا توجد كورسات مطابقة للبحث</p>
+              <p className="text-white/40">لا توجد كورسات متاحة حالياً</p>
             </div>
           )}
         </div>
       </div>
+
+      <MobileNav role="STUDENT" />
     </div>
   )
 }

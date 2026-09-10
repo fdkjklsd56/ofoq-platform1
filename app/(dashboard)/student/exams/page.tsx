@@ -3,9 +3,10 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ClipboardList, Clock, CheckCircle, XCircle, ChevronLeft, Calendar } from 'lucide-react'
+import { ClipboardList, Clock, CheckCircle, ChevronLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import MobileNav from '@/components/shared/MobileNav'
 
 export default function ExamsPage() {
   const { data: session, status } = useSession()
@@ -49,8 +50,8 @@ export default function ExamsPage() {
   const completedExams = exams.filter((e: any) => e.status === 'completed')
 
   return (
-    <div className="min-h-screen bg-dark p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-dark pb-24 lg:pb-8">
+      <div className="max-w-7xl mx-auto p-4 md:p-8">
         <div className="flex items-center gap-4 mb-8">
           <Link href="/student">
             <button className="p-2 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all duration-300">
@@ -58,61 +59,50 @@ export default function ExamsPage() {
             </button>
           </Link>
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white">الاختبارات</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-white">الاختبارات</h1>
             <p className="text-white/30 text-sm">جميع الاختبارات المتاحة والنتائج</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* اختبارات قادمة */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-white rounded-2xl p-6"
+          >
+            <h2 className="text-lg md:text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-yellow-400" />
+              اختبارات قادمة
+            </h2>
+            {upcomingExams.length > 0 ? (
+              <div className="space-y-3">
+                {upcomingExams.map((exam: any, i) => (
+                  <div key={i} className="p-4 rounded-xl bg-white/5">
+                    <h3 className="text-white font-medium">{exam.title}</h3>
+                    <p className="text-white/30 text-sm">{exam.date}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-white/40 text-sm text-center py-8">لا توجد اختبارات قادمة</p>
+            )}
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="glass-white rounded-2xl p-6"
           >
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-yellow-400" />
-              اختبارات قادمة
-            </h2>
-            {upcomingExams.length > 0 ? (
-              <div className="space-y-4">
-                {upcomingExams.map((exam: any, i) => (
-                  <div key={i} className="p-4 rounded-xl bg-white/5">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-white font-medium">{exam.title}</h3>
-                      <span className="text-xs bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full">
-                        {exam.days} أيام متبقية
-                      </span>
-                    </div>
-                    <p className="text-white/30 text-sm">{exam.date}</p>
-                    <button className="mt-3 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-all duration-300">
-                      استعداد
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-white/40 text-sm">لا توجد اختبارات قادمة</p>
-            )}
-          </motion.div>
-
-          {/* اختبارات منتهية */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="glass-white rounded-2xl p-6"
-          >
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <h2 className="text-lg md:text-xl font-bold text-white mb-4 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-400" />
               الاختبارات المنتهية
             </h2>
             {completedExams.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {completedExams.map((exam: any, i) => (
                   <div key={i} className="p-4 rounded-xl bg-white/5">
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex justify-between items-start">
                       <h3 className="text-white font-medium">{exam.title}</h3>
                       <span className={`text-xs px-3 py-1 rounded-full ${
                         exam.score >= exam.passingScore 
@@ -122,16 +112,18 @@ export default function ExamsPage() {
                         {exam.score}%
                       </span>
                     </div>
-                    <p className="text-white/30 text-sm">{exam.date}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-white/40 text-sm">لا توجد اختبارات منتهية</p>
+              <p className="text-white/40 text-sm text-center py-8">لا توجد اختبارات منتهية</p>
             )}
           </motion.div>
         </div>
       </div>
+
+      {/* الشريط السفلي للموبايل */}
+      <MobileNav role="STUDENT" />
     </div>
   )
 }
